@@ -392,7 +392,7 @@ class VideoProcessor(private val context: Context) {
             }
         }
     }
-    private fun saveDebugImage(bmp: Bitmap, name: String) {
+    fun saveDebugImage(bmp: Bitmap, name: String) {
         try {
             val displayName = "${name}_${System.currentTimeMillis()}.png"
             val contentValues = ContentValues().apply {
@@ -541,18 +541,6 @@ class VideoProcessor(private val context: Context) {
 
             val result = processedBmp?.let { Pair(it, bitmap) }
             withContext(Dispatchers.Main) { callback(result) }
-//            val result = processedBmp?.let { Pair(it, bitmap) }
-//            withContext(Dispatchers.Main) { callback(result) }
-//            val result: Pair<Bitmap, Bitmap>? = try {
-//                when (Settings.DetectionMode.current) {
-//                    Settings.DetectionMode.Mode.CONTOUR -> processFrameInternalCONTOUR(bitmap)
-//                    Settings.DetectionMode.Mode.YOLO -> processFrameInternalYOLO(bitmap)
-//                }
-//            } catch (e: Exception) {
-//                Log.d("VideoProcessor","Error processing frame: ${e.message}", e)
-//                null
-//            }
-//            withContext(Dispatchers.Main) { callback(result) }
         }
     }
     // Processes a frame using Contour Detection - Returns a Pair containing outputBitmap and videoBitmap.

@@ -36,6 +36,12 @@ import com.developer27.xamera.videoprocessing.ProcessedFrameRecorder
 import com.developer27.xamera.videoprocessing.ProcessedVideoRecorder
 import com.developer27.xamera.videoprocessing.Settings
 import com.developer27.xamera.videoprocessing.VideoProcessor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.gpu.GpuDelegate
 import org.tensorflow.lite.nnapi.NnApiDelegate
@@ -77,6 +83,9 @@ class MainActivity : AppCompatActivity() {
 
     // New flag to clear prediction when returning from an external intent.
     private var shouldClearPrediction = false
+
+    private var debugImageSavingJob: Job? = null
+    private var isDebugImageSaving = false
 
     private val REQUIRED_PERMISSIONS = arrayOf(
         Manifest.permission.CAMERA,
@@ -223,8 +232,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Load ML models.
-        loadTFLiteModelOnStartupThreaded("YOLOv3_float32.tflite")
-        loadTFLiteModelOnStartupThreaded("DigitRecog_float32.tflite")
+//        loadTFLiteModelOnStartupThreaded("YOLOv3_float32.tflite")
+//        loadTFLiteModelOnStartupThreaded("DigitRecog_float32.tflite")
+        loadTFLiteModelOnStartupThreaded("best_final.tflite")
 
         cameraHelper.setupZoomControls()
         sharedPreferences.registerOnSharedPreferenceChangeListener { _, key ->
@@ -310,6 +320,9 @@ class MainActivity : AppCompatActivity() {
         // Start video recording using VideoProcessor's method
         videoProcessor?.startVideoRecording()
 
+        // Start debug image saving
+        startDebugImageSaving()
+
         if (Settings.ExportData.videoDATA) {
             val dims = videoProcessor?.getModelDimensions()
             val width = dims?.first ?: 416
@@ -320,9 +333,34 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun startDebugImageSaving() {
+        isDebugImageSaving = true
+        debugImageSavingJob = CoroutineScope(Dispatchers.Default).launch {
+            var imageCounter = 0
+            while (isDebugImageSaving) {
+                val bitmap = withContext(Dispatchers.Main) {
+                    viewBinding.viewFinder.bitmap
+                }
+                bitmap?.let {
+                    // Limit total number of images to prevent excessive storage use
+                    if (imageCounter < 200) {
+                        videoProcessor?.saveDebugImage(it, "tracking_debug_${imageCounter}")
+                        imageCounter++
+                    } else {
+                        Log.w("DebugImageSaving", "Maximum image save limit reached")
+                        isDebugImageSaving = false
+                    }
+                }
+                delay(10) // 1 millisecond delay (close to 0.5 ms)
+            }
+        }
+    }
+
     private fun stopProcessingAndRecording() {
         isRecording = false
         isProcessing = false
+        isDebugImageSaving = false
+        debugImageSavingJob?.cancel()
         viewBinding.startProcessingButton.text = "Start Tracking"
         viewBinding.startProcessingButton.backgroundTintList =
             ContextCompat.getColorStateList(this, R.color.blue)
@@ -346,6 +384,7 @@ class MainActivity : AppCompatActivity() {
                     //try {
                     //    FileOutputStream(outputPath).use { fos ->
                     //        bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
+                    //    }
                     //    }
                     //} catch (e: Exception) {
                     //    Log.e("MainActivity", "Failed to save 28x28 image: ${e.message}")
@@ -516,10 +555,13 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                         when (modelName) {
-                            "YOLOv3_float32.tflite" -> {
-                                videoProcessor?.setInterpreter(Interpreter(loadMappedFile(bestLoadedPath), options))
-                            }
-                            "DigitRecog_float32.tflite" -> {
+//                            "YOLOv3_float32.tflite" -> {
+//                                videoProcessor?.setInterpreter(Interpreter(loadMappedFile(bestLoadedPath), options))
+//                            }
+//                            "DigitRecog_float32.tflite" -> {
+//                                tfliteInterpreter = Interpreter(loadMappedFile(bestLoadedPath), options)
+//                            }
+                            "best-final.tflite" -> {
                                 tfliteInterpreter = Interpreter(loadMappedFile(bestLoadedPath), options)
                             }
                             else -> Log.d("MainActivity", "No model processing method defined for $modelName")
