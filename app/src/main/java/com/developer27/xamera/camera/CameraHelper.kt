@@ -387,47 +387,6 @@ class CameraHelper(
         var zoomInRunnable: Runnable? = null
         var zoomOutRunnable: Runnable? = null
 
-        // Repetitive zoom in on long-press
-        viewBinding.zoomInButton.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    zoomInRunnable = object : Runnable {
-                        override fun run() {
-                            zoomIn()
-                            zoomHandler.postDelayed(this, 50)
-                        }
-                    }
-                    zoomHandler.post(zoomInRunnable!!)
-                    true
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    zoomHandler.removeCallbacks(zoomInRunnable!!)
-                    true
-                }
-                else -> false
-            }
-        }
-
-        // Repetitive zoom out on long-press
-        viewBinding.zoomOutButton.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    zoomOutRunnable = object : Runnable {
-                        override fun run() {
-                            zoomOut()
-                            zoomHandler.postDelayed(this, 50)
-                        }
-                    }
-                    zoomHandler.post(zoomOutRunnable!!)
-                    true
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    zoomHandler.removeCallbacks(zoomOutRunnable!!)
-                    true
-                }
-                else -> false
-            }
-        }
     }
 
     private fun zoomIn() {
